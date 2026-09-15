@@ -1,5 +1,5 @@
 -- ============================================================
--- AVERON HUB — FIXED
+-- AVERON HUB — NO SILENT
 -- ============================================================
 local Players            = game:GetService("Players")
 local RunService         = game:GetService("RunService")
@@ -51,19 +51,6 @@ local Config = {
         LastShot  = 0,
         WallCheck = false
     },
-    Silent   = {
-        Enabled           = false,
-        ToggleKey         = nil,
-        Prediction        = 0.15,
-        TargetPart        = "Head",
-        FOVRadius         = 300,
-        FOVVisible        = false,
-        FOVTransparency   = 0.5,
-        NoWall            = true,
-        NoDead            = true,
-        ShowTargetLine    = false,
-        TargetLineThickness = 2
-    },
     Targeting = {
         TargetAll   = false,
         PlayerRoles = {},
@@ -101,10 +88,8 @@ local Colors = {
     AccentDark      = Color3.fromRGB(120, 25, 25)
 }
 
-local ESPWhite            = Color3.new(1, 1, 1)
-local SilentHighlightColor = Color3.fromRGB(255, 40, 40)
-local ESPObjects          = {}
-local SilentLockedTarget  = nil
+local ESPWhite   = Color3.new(1, 1, 1)
+local ESPObjects = {}
 
 -- ============================================================
 -- HITBOX EXPANDER
@@ -772,77 +757,7 @@ local function CreateDropdown(parent, text, options, default, callback)
     end)
 end
 
-local function CreateKeybind(parent, text, default, callback)
-    local Frame = Instance.new("Frame")
-    Frame.Size             = UDim2.new(1, -8, 0, 36)
-    Frame.BackgroundColor3 = Colors.BackgroundHover
-    Frame.BorderSizePixel  = 0
-    Frame.Parent           = parent
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 4)
-
-    local Label = Instance.new("TextLabel")
-    Label.Size             = UDim2.new(1, -120, 1, 0)
-    Label.Position         = UDim2.new(0, 14, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text             = text
-    Label.TextColor3       = Colors.Text
-    Label.Font             = Enum.Font.Gotham
-    Label.TextSize         = 12
-    Label.TextXAlignment   = Enum.TextXAlignment.Left
-    Label.Parent           = Frame
-
-    local BindBtn = Instance.new("TextButton")
-    BindBtn.Size             = UDim2.new(0, 90, 0, 22)
-    BindBtn.Position         = UDim2.new(1, -100, 0.5, -11)
-    BindBtn.BackgroundColor3 = Colors.BackgroundInput
-    BindBtn.BorderSizePixel  = 0
-    BindBtn.Text             = (default and default.Name) or "None"
-    BindBtn.TextColor3       = Colors.Accent
-    BindBtn.Font             = Enum.Font.GothamBold
-    BindBtn.TextSize         = 11
-    BindBtn.AutoButtonColor  = false
-    BindBtn.Parent           = Frame
-    Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
-
-    local CurrentKey = default
-    local Listening  = false
-    local Connection
-
-    local function UpdateText()
-        BindBtn.Text = (CurrentKey and CurrentKey.Name) or "None"
-    end
-
-    local function StopListening()
-        Listening = false
-        if Connection then
-            Connection:Disconnect()
-            Connection = nil
-        end
-        UpdateText()
-    end
-
-    BindBtn.MouseButton1Click:Connect(function()
-        if Listening then return end
-        Listening = true
-        BindBtn.Text = "..."
-
-        Connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode == Enum.KeyCode.Delete or input.KeyCode == Enum.KeyCode.Backspace then
-                    CurrentKey = nil
-                else
-                    CurrentKey = input.KeyCode
-                end
-                callback(CurrentKey)
-                StopListening()
-            end
-        end)
-    end)
-end
-
 local TriggerPage = CreatePage("Trigger")
-local SilentPage  = CreatePage("Silent")
 local HitboxPage  = CreatePage("Hitbox")
 local PlayersPage = CreatePage("Players")
 local ESPPage     = CreatePage("Visual")
@@ -854,47 +769,6 @@ CreateDropdown(TriggerPage, "Target Mode", {"Player", "Hitbox"}, "Player", funct
 CreateSlider(TriggerPage, "Radius", 0, 200, Config.Trigger.Radius, function(val) Config.Trigger.Radius = val end)
 CreateSlider(TriggerPage, "Max Distance", 0, 200, Config.Trigger.MaxDist, function(val) Config.Trigger.MaxDist = val end)
 CreateToggle(TriggerPage, "Wall Check", Config.Trigger.WallCheck, function(val) Config.Trigger.WallCheck = val end)
-
--- SILENT
-local SilentToggleFunc = CreateToggle(SilentPage, "Enable Silent Aim", Config.Silent.Enabled, function(val)
-    Config.Silent.Enabled = val
-end)
-
-CreateKeybind(SilentPage, "Toggle Key", Config.Silent.ToggleKey, function(key)
-    Config.Silent.ToggleKey = key
-end)
-
-CreateDropdown(SilentPage, "Target Part", {"Head", "Torso", "HumanoidRootPart"}, Config.Silent.TargetPart, function(val)
-    Config.Silent.TargetPart = val
-end)
-
-CreateSlider(SilentPage, "Prediction", 0, 1, Config.Silent.Prediction, function(val)
-    Config.Silent.Prediction = val
-end)
-
-CreateSlider(SilentPage, "FOV Radius", 50, 1000, Config.Silent.FOVRadius, function(val)
-    Config.Silent.FOVRadius = val
-end)
-
-CreateToggle(SilentPage, "Show FOV Circle", Config.Silent.FOVVisible, function(val)
-    Config.Silent.FOVVisible = val
-end)
-
-CreateToggle(SilentPage, "Wall Check", Config.Silent.NoWall, function(val)
-    Config.Silent.NoWall = val
-end)
-
-CreateToggle(SilentPage, "Skip Dead / K.O", Config.Silent.NoDead, function(val)
-    Config.Silent.NoDead = val
-end)
-
-CreateToggle(SilentPage, "Show Target Line", Config.Silent.ShowTargetLine, function(val)
-    Config.Silent.ShowTargetLine = val
-end)
-
-CreateSlider(SilentPage, "Target Line Thickness", 1, 6, Config.Silent.TargetLineThickness, function(val)
-    Config.Silent.TargetLineThickness = val
-end)
 
 -- HITBOX
 CreateToggle(HitboxPage, "Enable Hitbox Expander", Config.Hitbox.Enabled, function(val)
@@ -1261,10 +1135,6 @@ local function CanESPTarget(player, onlyTargetMode)
     return false
 end
 
-local function IsSilentHighlighted(player)
-    return Config.Silent.Enabled and SilentLockedTarget == player
-end
-
 -- ============================================================
 -- ESP
 -- ============================================================
@@ -1495,7 +1365,6 @@ local function UpdateESP()
 
         local distance = (camera.CFrame.Position - hrp.Position).Magnitude
         local screenPos, onScreen = camera:WorldToViewportPoint(hrp.Position)
-        local highlighted = IsSilentHighlighted(player)
 
         if Config.ESP.Name.Enabled and ESPObjects[player].Name then
             ESPObjects[player].Name.Enabled = onScreen
@@ -1505,13 +1374,8 @@ local function UpdateESP()
                 nameText.Text = Config.ESP.Name.ShowDistance
                     and (player.DisplayName .. " [" .. math.floor(distance) .. "m]")
                     or player.DisplayName
-                if highlighted then
-                    nameText.TextColor3          = SilentHighlightColor
-                    nameText.TextStrokeTransparency = 0.3
-                else
-                    nameText.TextColor3          = ESPWhite
-                    nameText.TextStrokeTransparency = 0.5
-                end
+                nameText.TextColor3          = ESPWhite
+                nameText.TextStrokeTransparency = 0.5
             end
         elseif ESPObjects[player].Name then
             ESPObjects[player].Name.Enabled = false
@@ -1525,7 +1389,7 @@ local function UpdateESP()
                 local toolText = ESPObjects[player].Tool:FindFirstChild("TextLabel")
                 if toolText then
                     toolText.Text      = "[" .. tool.Name .. "]"
-                    toolText.TextColor3 = highlighted and SilentHighlightColor or ESPWhite
+                    toolText.TextColor3 = ESPWhite
                 end
             else
                 ESPObjects[player].Tool.Enabled = false
@@ -1539,10 +1403,9 @@ local function UpdateESP()
                 CreateBox(player)
             end
             if ESPObjects[player].Box[1] and onScreen then
-                local boxColor = highlighted and SilentHighlightColor or ESPWhite
                 for i = 2, #ESPObjects[player].Box do
                     local line = ESPObjects[player].Box[i]
-                    if line then line.BackgroundColor3 = boxColor end
+                    if line then line.BackgroundColor3 = ESPWhite end
                 end
                 ESPObjects[player].Box[1].Enabled = true
             else
@@ -1556,9 +1419,8 @@ local function UpdateESP()
             ApplyChams(player)
             local existing = character:FindFirstChild("averon_Chams")
             if existing then
-                local chamsColor = highlighted and SilentHighlightColor or ESPWhite
-                existing.FillColor    = chamsColor
-                existing.OutlineColor = chamsColor
+                existing.FillColor    = ESPWhite
+                existing.OutlineColor = ESPWhite
             end
         else
             ClearChams(player)
@@ -1575,7 +1437,7 @@ local function UpdateESP()
                 if fill then
                     ESPObjects[player].Healthbar[1].Enabled = true
                     fill.Size             = UDim2.new(1, 0, healthPercent, 0)
-                    fill.BackgroundColor3 = highlighted and SilentHighlightColor or ESPWhite
+                    fill.BackgroundColor3 = ESPWhite
                 end
             else
                 if ESPObjects[player].Healthbar[1] then
@@ -1593,194 +1455,6 @@ end
 Players.PlayerRemoving:Connect(function(player)
     RemoveESP(player)
 end)
-
--- ============================================================
--- SILENT AIM
--- ============================================================
-local function SilentGetPart(char, partName)
-    if not char then return nil end
-    local p = char:FindFirstChild(partName)
-    if p then return p end
-    if partName == "Head" then
-        return char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-    end
-    if partName == "Torso" then
-        return char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-local function SilentHasWall(targetChar, targetPart, camera)
-    if not targetChar or not targetPart then return true end
-    local origin = camera.CFrame.Position
-    local dir = targetPart.Position - origin
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local excl = {}
-    if LocalPlayer.Character then excl[#excl + 1] = LocalPlayer.Character end
-    params.FilterDescendantsInstances = excl
-    local res = Workspace:Raycast(origin, dir, params)
-    if not res then return false end
-    return not res.Instance:IsDescendantOf(targetChar)
-end
-
-local function SilentIsValidTarget(v, camera)
-    local s = Config.Silent
-    if not v or v == LocalPlayer then return false end
-    if not v.Character then return false end
-    local role = Config.Targeting.PlayerRoles[v.UserId]
-    if role ~= "Target" then return false end
-    if s.NoDead and (not IsPlayerAlive(v) or IsPlayerKO(v)) then return false end
-    local part = SilentGetPart(v.Character, s.TargetPart)
-    if not part then return false end
-    return true
-end
-
-local function SilentIsSticky(v)
-    if not v or v == LocalPlayer then return false end
-    if not v.Parent then return false end
-    if not v.Character then return false end
-    local role = Config.Targeting.PlayerRoles[v.UserId]
-    if role ~= "Target" then return false end
-    if Config.Silent.NoDead and (not IsPlayerAlive(v) or IsPlayerKO(v)) then return false end
-    local part = SilentGetPart(v.Character, Config.Silent.TargetPart)
-    if not part then return false end
-    return true
-end
-
-local function SilentGetClosest(camera)
-    local s = Config.Silent
-    if not s.Enabled then
-        SilentLockedTarget = nil
-        return nil
-    end
-
-    if SilentLockedTarget then
-        if SilentIsSticky(SilentLockedTarget) then
-            return SilentLockedTarget
-        end
-        SilentLockedTarget = nil
-    end
-
-    local mx, my = Mouse.X, Mouse.Y
-    local best, bestDist = nil, math.huge
-
-    for _, v in ipairs(Players:GetPlayers()) do
-        if SilentIsValidTarget(v, camera) then
-            local part = SilentGetPart(v.Character, s.TargetPart)
-            if part then
-                local pos, onScreen = camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    local d = (Vector2.new(pos.X, pos.Y) - Vector2.new(mx, my)).Magnitude
-                    if d < s.FOVRadius and d < bestDist then
-                        best, bestDist = v, d
-                    end
-                end
-            end
-        end
-    end
-
-    SilentLockedTarget = best
-    return best
-end
-
-local SilentHookInstalled = false
-pcall(function()
-    local mt = getrawmetatable(game)
-    local oldIndex = mt.__index
-    setreadonly(mt, false)
-    mt.__index = function(self, key)
-        local s = Config.Silent
-        if s.Enabled and self == Mouse and key == "Hit" then
-            local cam = workspace.CurrentCamera
-            local t = SilentGetClosest(cam)
-            if t and t.Character then
-                local part = SilentGetPart(t.Character, s.TargetPart)
-                if part then
-                    local vel = Vector3.new(0, 0, 0)
-                    pcall(function() vel = part.AssemblyLinearVelocity end)
-                    return part.CFrame + (vel * s.Prediction)
-                end
-            end
-        end
-        return oldIndex(self, key)
-    end
-    setreadonly(mt, true)
-    SilentHookInstalled = true
-end)
-
-local fovCircle
-pcall(function()
-    fovCircle = Drawing.new("Circle")
-    fovCircle.Color        = Color3.fromRGB(220, 40, 40)
-    fovCircle.Thickness    = 1
-    fovCircle.Filled       = false
-    fovCircle.Transparency = Config.Silent.FOVTransparency
-    fovCircle.Radius       = Config.Silent.FOVRadius
-    fovCircle.Visible      = false
-    fovCircle.NumSides     = 64
-end)
-
-local targetLine
-pcall(function()
-    targetLine = Drawing.new("Line")
-    targetLine.Visible      = false
-    targetLine.Color        = Color3.fromRGB(220, 40, 40)
-    targetLine.Thickness    = Config.Silent.TargetLineThickness
-    targetLine.Transparency = 1
-end)
-
-RunService.RenderStepped:Connect(function()
-    local s   = Config.Silent
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-
-    if fovCircle then
-        pcall(function()
-            fovCircle.Position     = UserInputService:GetMouseLocation()
-            fovCircle.Radius       = s.FOVRadius
-            fovCircle.Transparency = s.FOVTransparency
-            fovCircle.Visible      = s.FOVVisible and s.Enabled
-        end)
-    end
-
-    if targetLine then
-        if not (s.Enabled and s.ShowTargetLine) then
-            targetLine.Visible = false
-        else
-            local t = SilentGetClosest(cam)
-            if t and t.Character then
-                local part = SilentGetPart(t.Character, s.TargetPart)
-                if part then
-                    local pos3D = part.Position
-                    if s.Prediction ~= 0 then
-                        local vel = Vector3.new(0, 0, 0)
-                        pcall(function() vel = part.AssemblyLinearVelocity end)
-                        pos3D = pos3D + vel * s.Prediction
-                    end
-                    local screen, on = cam:WorldToViewportPoint(pos3D)
-                    if on then
-                        targetLine.From      = UserInputService:GetMouseLocation()
-                        targetLine.To        = Vector2.new(screen.X, screen.Y)
-                        targetLine.Color     = Color3.fromRGB(220, 40, 40)
-                        targetLine.Thickness = s.TargetLineThickness
-                        targetLine.Visible   = true
-                    else
-                        targetLine.Visible = false
-                    end
-                else
-                    targetLine.Visible = false
-                end
-            else
-                targetLine.Visible = false
-            end
-        end
-    end
-end)
-
-if not SilentHookInstalled then
-    warn("[averon hub] Silent Aim: getrawmetatable unavailable")
-end
 
 -- ============================================================
 -- TRIGGERBOT
@@ -1960,11 +1634,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Config.MenuKey then
         ToggleMenu()
-    end
-    if Config.Silent.ToggleKey and input.KeyCode == Config.Silent.ToggleKey then
-        local newState = not Config.Silent.Enabled
-        Config.Silent.Enabled = newState
-        if SilentToggleFunc then SilentToggleFunc(newState) end
     end
 end)
 
