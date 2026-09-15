@@ -15,7 +15,7 @@ const app = express();
 // ===== НАСТРОЙКИ =====
 const GROUP_ID = 915657087;
 const MIN_RANK = 1;
-const SCRIPT_URL = 'https://raw.githubusercontent.com/averonhub/averonehub/main/ave.lua';
+const SCRIPT_URL = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/averonhub/averonehub/refs/heads/main/ave.lua"))()';
 
 // Проверка через Roblox API
 async function checkGroup(userId) {
