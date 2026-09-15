@@ -8,29 +8,47 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
--- ============================================================
--- WHITELIST CHECK (GROUP ONLY)
--- ============================================================
-local GROUP_ID = 915657087 -- ← ЗАМЕНИ на ID твоей группы
-local MIN_RANK = 1        -- ← минимальный ранг (1 = любой участник)
+const express = require('express');
+const fetch = require('node-fetch');
+const app = express();
 
-local GroupService = game:GetService("GroupService")
-local LocalPlayer = Players.LocalPlayer
+// ===== НАСТРОЙКИ =====
+const GROUP_ID = 915657087;
+const MIN_RANK = 1;
+const SCRIPT_URL = 'https://raw.githubusercontent.com/averonhub/averonehub/main/ave.lua';
 
-local function isWhitelisted()
-    local success, rank = pcall(function()
-        return LocalPlayer:GetRankInGroup(GROUP_ID)
-    end)
-    if not success then return false end
-    return rank >= MIN_RANK
-end
+// Проверка через Roblox API
+async function checkGroup(userId) {
+    try {
+        const url = `https://groups.roblox.com/v1/users/${userId}/groups/roles`;
+        const res = await fetch(url);
+        if (!res.ok) return false;
+        const data = await res.json();
+        const group = data.data.find(g => g.group.id === GROUP_ID);
+        if (!group) return false;
+        return group.role.rank >= MIN_RANK;
+    } catch (e) {
+        return false;
+    }
+}
 
-if not isWhitelisted() then
-    -- Кикаем игрока / показываем сообщение
-    LocalPlayer:Kick("❌ Вы не участник группы. Вступайте: roblox.com/groups/" .. GROUP_ID)
-    return -- останавливаем скрипт
-end
--- ============================================================
+app.get('/loader', async (req, res) => {
+    const userId = parseInt(req.query.userid);
+    if (!userId || isNaN(userId)) {
+        return res.status(400).send('-- Invalid UserId');
+    }
+    
+    const allowed = await checkGroup(userId);
+    if (!allowed) {
+        return res.status(403).send('-- ❌ соси хух )' + GROUP_ID);
+    }
+    
+    const script = await fetch(SCRIPT_URL).then(r => r.text());
+    res.type('text/plain').send(script);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Server running on port ' + PORT));
 
 local Config = {
     Enabled = true,
