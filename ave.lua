@@ -11,44 +11,31 @@ local Mouse = LocalPlayer:GetMouse()
 const express = require('express');
 const fetch = require('node-fetch');
 const app = express();
+-- ============================================================
+-- AVERON HUB — GROUP CHECK
+-- ============================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-// ===== НАСТРОЙКИ =====
-const GROUP_ID = 915657087;
-const MIN_RANK = 1;
-const SCRIPT_URL = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/averonhub/averonehub/refs/heads/main/ave.lua"))()';
+local GROUP_ID = 915657087
+local MIN_RANK = 1
 
-// Проверка через Roblox API
-async function checkGroup(userId) {
-    try {
-        const url = `https://groups.roblox.com/v1/users/${userId}/groups/roles`;
-        const res = await fetch(url);
-        if (!res.ok) return false;
-        const data = await res.json();
-        const group = data.data.find(g => g.group.id === GROUP_ID);
-        if (!group) return false;
-        return group.role.rank >= MIN_RANK;
-    } catch (e) {
-        return false;
-    }
-}
+local function checkGroupAccess()
+    local ok, rank = pcall(function()
+        return LocalPlayer:GetRankInGroup(GROUP_ID)
+    end)
+    if not ok then return false end
+    if type(rank) ~= "number" then return false end
+    return rank >= MIN_RANK
+end
 
-app.get('/loader', async (req, res) => {
-    const userId = parseInt(req.query.userid);
-    if (!userId || isNaN(userId)) {
-        return res.status(400).send('-- Invalid UserId');
-    }
-    
-    const allowed = await checkGroup(userId);
-    if (!allowed) {
-        return res.status(403).send('-- ❌ соси хух )' + GROUP_ID);
-    }
-    
-    const script = await fetch(SCRIPT_URL).then(r => r.text());
-    res.type('text/plain').send(script);
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Server running on port ' + PORT));
+if not checkGroupAccess() then
+    LocalPlayer:Kick(
+      сосо хух 
+    )
+    return
+end
+-- ============================================================
 
 local Config = {
     Enabled = true,
