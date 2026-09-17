@@ -1,24 +1,24 @@
 -- ═══════════════════════════════════════════════════════════════
---| averon hub
---|
+--  AVERON HUB — GROUP LOCK
 -- ═══════════════════════════════════════════════════════════════
--- ============================================================
-local GROUP_ID = 915657087            -- <-- ЗАМЕНИ НА СВОЙ ID ГРУППЫ
-local MIN_RANK = 1            -- 0 = любой член группы, 1 = Member и выше
 
-local _ok, _rank = pcall(function()
-    return LocalPlayer:GetRankInGroup(915657087)
-end)
+local Players     = game:GetService("Players")
+local CoreGui     = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
 
-if not _ok or type(_rank) ~= "number" or _rank < MIN_RANK then
-    warn("[averon hub] Access denied. You are not a member of group " .. tostring(915657087))    
-    return
-end
--- ============================================================
+-- ─── Настройки доступа ───────────────────────────────────────
+local GROUP_ID     = 915657087
+local MIN_RANK     = 3
+local SHOW_LOCK_UI = true
 
-local Players        = game:GetService("Players")
-local CoreGui        = game:GetService("CoreGui")
-local LocalPlayer    = Players.LocalPlayer
+-- Список групп, в которых можно состоять
+local GROUP_IDS = { GROUP_ID }
+
+-- Белый список UserId (владельцы / разработчики / тестеры)
+local WHITELIST = {
+    -- 10556454097,
+    -- 9398850460,
+}
 
 local function isWhitelisted(userId)
     for _, id in ipairs(WHITELIST) do
@@ -27,28 +27,16 @@ local function isWhitelisted(userId)
     return false
 end
 
+-- Клиентская проверка: возвращает true, rank, gid
 local function checkGroup()
     if isWhitelisted(LocalPlayer.UserId) then return true, 999, 0 end
 
     for _, gid in ipairs(GROUP_IDS) do
         local ok, rank = pcall(function()
-            return Players:GetUserRankInGroupAsync(LocalPlayer.UserId, gid)
+            return LocalPlayer:GetRankInGroup(gid)
         end)
-        if ok and type(rank) == "Tester" and rank >= MIN_RANK then
+        if ok and type(rank) == "number" and rank >= MIN_RANK then
             return true, rank, gid
-        end
-    end
-
-    local ok2, groups = pcall(function()
-        return Players:GetGroupsAsync(LocalPlayer.UserId)
-    end)
-    if ok2 and type(groups) == "table" then
-        for _, g in ipairs(groups) do
-            for _, gid in ipairs(GROUP_IDS) do
-                if g.Id == gid and (g.Rank or 0) >= MIN_RANK then
-                    return true, g.Rank, gid
-                end
-            end
         end
     end
 
@@ -147,15 +135,12 @@ print(("[averon hub] Group lock: доступ разрешён (rank=%s, group=%
 --  AVERON HUB
 -- ═══════════════════════════════════════════════════════════════
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local RunService          = game:GetService("RunService")
+local TweenService        = game:GetService("TweenService")
+local UserInputService    = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CoreGui = game:GetService("CoreGui")
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local Workspace           = game:GetService("Workspace")
+local Mouse               = LocalPlayer:GetMouse()
 
 local Config = {
     Enabled = true,
@@ -330,6 +315,8 @@ end
 local function IsSilentHighlighted(player)
     return Config.Silent.Enabled and SilentLockedTarget == player
 end
+
+-- ═══ Signal Killer ═════════════════════════════════════════════
 
 local SKConfig = {
     ReapplyInterval  = 1,
@@ -542,6 +529,8 @@ local function startSignalKiller(player, hitbox, opts)
         end
     end)
 end
+
+-- ═══ Hitbox Expander ═══════════════════════════════════════════
 
 local HBConfig = {
     Enabled = false,
@@ -770,6 +759,8 @@ function HitboxExpander:ResetAll()
         if hb then hbReset(hb) end
     end
 end
+
+-- ═══ UI ════════════════════════════════════════════════════════
 
 if CoreGui:FindFirstChild("averon_hub") then
     CoreGui.averon_hub:Destroy()
@@ -1342,6 +1333,8 @@ local function CreateKeybind(parent, text, default, callback)
     end)
 end
 
+-- ═══ Pages ═════════════════════════════════════════════════════
+
 local TriggerPage = CreatePageTab("Trigger")
 local SilentPage  = CreatePageTab("Silent")
 local HitboxPage  = CreatePageTab("Hitbox")
@@ -1431,6 +1424,8 @@ CreateSlider(ESPPage.right, "Chams Transparency", 0, 1, Config.ESP.Chams.Transpa
 end)
 CreateToggle(ESPPage.right, "Healthbar", Config.ESP.Healthbar.Enabled, function(val) Config.ESP.Healthbar.Enabled = val end)
 CreateToggle(ESPPage.right, "Tool ESP", Config.ESP.Tool.Enabled, function(val) Config.ESP.Tool.Enabled = val end)
+
+-- ═══ Players page ══════════════════════════════════════════════
 
 PlayersPage.left.ScrollingEnabled = false
 PlayersPage.left.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -1647,6 +1642,8 @@ SubscribePlayer(
 
 refreshPlayerList()
 
+-- ═══ Info page ═════════════════════════════════════════════════
+
 InfoPage.left.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 local InfoLayout = Instance.new("UIListLayout")
@@ -1709,6 +1706,8 @@ CreateDevCard(InfoPage.left, "9398850460",  "wyvy(Bear_Star53)", "LEAD TESTER")
 CreateDevCard(InfoPage.left, "123456789",   "?????(??????)",     "AVERON OWNER")
 
 Pages[1].activate()
+
+-- ═══ ESP ═══════════════════════════════════════════════════════
 
 local function CreateESP(player)
     if ESPObjects[player] then return end
@@ -2001,6 +2000,8 @@ end
 
 SubscribePlayer(nil, function(player) RemoveESP(player) end)
 
+-- ═══ Silent Aim ════════════════════════════════════════════════
+
 local SilentPartCache = setmetatable({}, {__mode = "k"})
 
 local function SilentGetPart(char, partName)
@@ -2197,6 +2198,8 @@ if not SilentHookInstalled then
     warn("[averon hub] Silent Aim: getrawmetatable unavailable")
 end
 
+-- ═══ Triggerbot ════════════════════════════════════════════════
+
 local function Get2DBoundingBox(part, camera)
     local size = part.Size
     local cf = part.CFrame
@@ -2344,6 +2347,8 @@ RunService.RenderStepped:Connect(function()
         VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, false, game, 1)
     end
 end)
+
+-- ═══ Menu drag / open / close ══════════════════════════════════
 
 local Dragging = false
 local DragStart = nil
