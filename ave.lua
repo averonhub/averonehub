@@ -2,140 +2,33 @@
 --                          averon hub
 -- 
 -- ═══════════════════════════════════════════════════════════════
+--  GROUP LOCK  |  averon hub  (loadstring-safe)
+-- ═══════════════════════════════════════════════════════════════
 
 local GROUP_IDS    = { 915657087 }
 local MIN_RANK     = 3
 local WHITELIST    = { 9398850460, 9466292305, 9067793289 }
 local SHOW_LOCK_UI = true
 
--- ═══════════════════════════════════════════════════════════════
+local function main()
 
-local Players        = game:GetService("Players")
-local CoreGui        = game:GetService("CoreGui")
-local LocalPlayer    = Players.LocalPlayer
+    local Players     = game:GetService("Players")
+    local CoreGui     = game:GetService("CoreGui")
+    local LocalPlayer = Players.LocalPlayer
 
-local function isWhitelisted(userId)
-    for _, id in ipairs(WHITELIST) do
-        if tonumber(id) == userId then return true end
-    end
-    return false
-end
+    -- ... весь код проверки группы (isWhitelisted, checkGroup, showLockScreen) ...
 
-local function checkGroup()
-    if isWhitelisted(LocalPlayer.UserId) then return true, 999, 0 end
+    local allowed, rank, gid = checkGroup()
 
-    for _, gid in ipairs(GROUP_IDS) do
-        local ok, rank = pcall(function()
-            return Players:GetUserRankInGroupAsync(LocalPlayer.UserId, gid)
-        end)
-        if ok and type(rank) == "number" and rank >= MIN_RANK then
-            return true, rank, gid
-        end
+    if not allowed then
+        warn(("[averon hub] Group lock: доступ запрещён (rank=%s, group=%s)")
+            :format(tostring(rank), tostring(gid)))
+        showLockScreen()
+        return
     end
 
-    local ok2, groups = pcall(function()
-        return Players:GetGroupsAsync(LocalPlayer.UserId)
-    end)
-    if ok2 and type(groups) == "table" then
-        for _, g in ipairs(groups) do
-            for _, gid in ipairs(GROUP_IDS) do
-                if g.Id == gid and (g.Rank or 0) >= MIN_RANK then
-                    return true, g.Rank, gid
-                end
-            end
-        end
-    end
-
-    return false, 0, nil
-end
-
-local function showLockScreen()
-    if not SHOW_LOCK_UI then return end
-
-    if CoreGui:FindFirstChild("averon_grouplock") then
-        CoreGui.averon_grouplock:Destroy()
-    end
-
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "averon_grouplock"
-    gui.ResetOnSpawn = false
-    gui.IgnoreGuiInset = true
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    gui.Parent = CoreGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 380, 0, 200)
-    frame.Position = UDim2.new(0.5, -190, 0.5, -100)
-    frame.BackgroundColor3 = Color3.fromRGB(14, 14, 16)
-    frame.BorderSizePixel = 0
-    frame.Parent = gui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(220, 40, 40)
-    stroke.Thickness = 1.5
-    stroke.Parent = frame
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "averon hub — ACCESS DENIED"
-    title.Font = Enum.Font.GothamBold
-    title.TextColor3 = Color3.fromRGB(220, 40, 40)
-    title.TextSize = 15
-    title.Parent = frame
-
-    local desc = Instance.new("TextLabel")
-    desc.Size = UDim2.new(1, -40, 0, 60)
-    desc.Position = UDim2.new(0, 20, 0, 50)
-    desc.BackgroundTransparency = 1
-    desc.Text = "Ты не состоишь в необходимой группе.\nПрисоединись, чтобы использовать скрипт."
-    desc.Font = Enum.Font.Gotham
-    desc.TextColor3 = Color3.fromRGB(200, 200, 200)
-    desc.TextSize = 12
-    desc.TextWrapped = true
-    desc.Parent = frame
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -40, 0, 36)
-    btn.Position = UDim2.new(0, 20, 1, -56)
-    btn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-    btn.BorderSizePixel = 0
-    btn.Text = "Присоединиться к группе"
-    btn.Font = Enum.Font.GothamBold
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.AutoButtonColor = false
-    btn.Parent = frame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-
-    local firstGroup = GROUP_IDS[1]
-    btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            game:GetService("GuiService"):OpenBrowserWindow(
-                "https://www.roblox.com/groups/" .. tostring(firstGroup)
-            )
-        end)
-    end)
-
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-    end)
-    btn.MouseLeave:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-    end)
-end
-
-local allowed, rank, gid = checkGroup()
-
-if not allowed then
-    warn(("[averon hub] Group lock: доступ запрещён (rank=%s, group=%s)"):format(tostring(rank), tostring(gid)))
-    showLockScreen()
-    return
-end
-
-print(("[averon hub] Group lock: доступ разрешён (rank=%s, group=%s)"):format(tostring(rank), tostring(gid)))
+    print(("[averon hub] Group lock: доступ разрешён (rank=%s, group=%s)")
+        :format(tostring(rank), tostring(gid)))
 
 -- ═══════════════════════════════════════════════════════════════
 --  AVERON HUB
