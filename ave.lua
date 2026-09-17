@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local GROUP_ID = 915657087
-local MIN_RANK = 3 
+local MIN_RANK = 1 
 local ALLOWED_USERIDS = {
     -- Сюда впиши UserId'ы тех, кому можно в любом случае (разработчики)
     -- [10556454097] = true,
