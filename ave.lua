@@ -3,12 +3,90 @@
 --  Проверка группы перед запуском скрипта
 -- ═══════════════════════════════════════════════════════════════
 
-local GROUP_IDS    = { 915657087 }
-local MIN_RANK     = 3
-local WHITELIST    = { 9398850460, 9466292305, 9067793289 }
-local SHOW_LOCK_UI = true
+-- ============================================================
+--  averon hub — Private Access Gate
+--  Запуск только для участников указанной Roblox-группы.
+--  Настрой два параметра ниже и всё.
+-- ============================================================
+local ACCESS = {
+    GROUP_ID    = 915657087 ,          -- <-- ЗАМЕНИ на ID своей группы
+    MIN_RANK    = 1,          -- 0 = любой участник, 1 = Member, 100 = Admin, 255 = Owner
+    RETRY_COUNT = 5,          -- сколько раз повторить проверку (кэш группы грузится не сразу)
+    RETRY_DELAY = 0.3,        -- пауза между попытками, сек
+    SHOW_DENIED = true,       -- показать красное "ACCESS DENIED" на экране
+}
 
--- ═══════════════════════════════════════════════════════════════
+local function accessDenied(reason)
+    warn(string.format(
+        "[averon hub] Access denied — %s (group: %d, required rank: %d)",
+        reason, ACCESS.GROUP_ID, ACCESS.MIN_RANK
+    ))
+
+    if not ACCESS.SHOW_DENIED then return end
+
+    -- Простое уведомление через ScreenGui поверх всего
+    pcall(function()
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "averon_denied"
+        gui.ResetOnSpawn = false
+        gui.IgnoreGuiInset = true
+        gui.DisplayOrder = 999
+        gui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, 80)
+        label.Position = UDim2.new(0, 0, 0.5, -40)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBlack
+        label.TextSize = 42
+        label.TextColor3 = Color3.fromRGB(220, 40, 40)
+        label.TextStrokeColor3 = Color3.new(0, 0, 0)
+        label.TextStrokeTransparency = 0
+        label.Text = "ACCESS DENIED"
+        label.Parent = gui
+
+        task.delay(3, function()
+            pcall(function() gui:Destroy() end)
+        end)
+    end)
+end
+
+local function verifyAccess()
+    if ACCESS.GROUP_ID == 0 then
+        accessDenied("GROUP_ID не настроен в скрипте")
+        return false
+    end
+
+    local rank
+    for attempt = 1, ACCESS.RETRY_COUNT do
+        local ok, result = pcall(function()
+            return LocalPlayer:GetRankInGroup(ACCESS.GROUP_ID)
+        end)
+        if ok and type(result) == "number" then
+            rank = result
+            -- Ранг 0 = либо не в группе, либо кэш ещё не прогрузился.
+            -- Если это последняя попытка — принимаем как отказ.
+            if rank >= ACCESS.MIN_RANK then
+                return true
+            end
+        end
+        if attempt < ACCESS.RETRY_COUNT then
+            task.wait(ACCESS.RETRY_DELAY)
+        end
+    end
+
+    if rank == nil or rank == 0 then
+        accessDenied("не участник группы")
+    else
+        accessDenied(string.format("недостаточный ранг (%d < %d)", rank, ACCESS.MIN_RANK))
+    end
+    return false
+end
+
+if not verifyAccess() then
+    return
+end
+-- ============================================================
 
 local Players        = game:GetService("Players")
 local CoreGui        = game:GetService("CoreGui")
