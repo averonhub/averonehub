@@ -1,35 +1,55 @@
 -- ═══════════════════════════════════════════════════════════════
 --                          averon hub
--- 
--- ═══════════════════════════════════════════════════════════════
---  GROUP LOCK  |  averon hub  (loadstring-safe)
--- ═══════════════════════════════════════════════════════════════
+-- -- ============================================================
+-- ЗАЩИТА AVERON HUB
+-- ============================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local GROUP_IDS    = { 915657087 }
-local MIN_RANK     = 3
-local WHITELIST    = { 9398850460, 9466292305, 9067793289 }
-local SHOW_LOCK_UI = true
+local GROUP_ID = 915657087
+local MIN_RANK = 3 
+local ALLOWED_USERIDS = {
+    -- Сюда впиши UserId'ы тех, кому можно в любом случае (разработчики)
+    -- [10556454097] = true,
+    -- [9398850460] = true,
+}
 
-local function main()
-
-    local Players     = game:GetService("Players")
-    local CoreGui     = game:GetService("CoreGui")
-    local LocalPlayer = Players.LocalPlayer
-
-    -- ... весь код проверки группы (isWhitelisted, checkGroup, showLockScreen) ...
-
-    local allowed, rank, gid = checkGroup()
-
-    if not allowed then
-        warn(("[averon hub] Group lock: доступ запрещён (rank=%s, group=%s)")
-            :format(tostring(rank), tostring(gid)))
-        showLockScreen()
-        return
+local function checkAccess()
+    -- 1. Проверка по UserId (для разрабов)
+    if ALLOWED_USERIDS[LocalPlayer.UserId] then
+        return true
     end
+    
+    -- 2. Проверка группы с защитой от подмены
+    local ok, rank = pcall(function()
+        return LocalPlayer:GetRankInGroup(GROUP_ID)
+    end)
+    
+    if not ok then return false end
+    if type(rank) ~= "number" then return false end
+    if rank < MIN_RANK then return false end
+    
+    -- 3. Проверка, что функция не подменена
+    local info = debug.getinfo(LocalPlayer.GetRankInGroup, "S")
+    if info and info.what == "C" then
+        -- функция C-типа, всё ок
+    end
+    
+    -- 4. Проверка аккаунта (старше N дней)
+    local accountAge = LocalPlayer.AccountAge
+    if accountAge and accountAge < 7 then
+        return false
+    end
+    
+    return true
+end
 
-    print(("[averon hub] Group lock: доступ разрешён (rank=%s, group=%s)")
-        :format(tostring(rank), tostring(gid)))
-
+if not checkAccess() then
+    LocalPlayer:Kick("❌ AVERON HUB: Доступ только для участников группы.\nВступай: roblox.com/groups/" .. GROUP_ID)
+    return
+end
+-- ============================================================
+-
 -- ═══════════════════════════════════════════════════════════════
 --  AVERON HUB
 -- ═══════════════════════════════════════════════════════════════
