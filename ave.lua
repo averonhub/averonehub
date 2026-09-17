@@ -11,7 +11,7 @@ local _ok, _rank = pcall(function()
 end)
 
 if not _ok or type(_rank) ~= "number" or _rank < MIN_RANK then
-    warn("[averon hub] Access denied. You are not a member of group " .. tostring(GROUP_ID))
+    warn("[averon hub] Access denied. You are not a member of group " .. tostring(915657087))    
     return
 end
 -- ============================================================
