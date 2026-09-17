@@ -7,7 +7,7 @@ local GROUP_ID = 915657087            -- <-- ЗАМЕНИ НА СВОЙ ID ГР�
 local MIN_RANK = 1            -- 0 = любой член группы, 1 = Member и выше
 
 local _ok, _rank = pcall(function()
-    return LocalPlayer:GetRankInGroup(GROUP_ID)
+    return LocalPlayer:GetRankInGroup(915657087)
 end)
 
 if not _ok or type(_rank) ~= "number" or _rank < MIN_RANK then
